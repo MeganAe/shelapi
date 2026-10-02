@@ -1,0 +1,11 @@
+{
+  "name": "ai-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node local.js",
+    "dev": "vercel dev"
+  }
+}
