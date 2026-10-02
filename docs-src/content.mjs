@@ -311,7 +311,7 @@ export function createContent(spec, reference) {
         label: "Valeurs par défaut des limites",
         className: "docs-table--wrap",
       }),
-      `<div class="docs-prose">${md("La durée d'une tentative couvre l'attente de la réponse complète, hors streaming. En streaming, elle ne couvre que l'attente du début de la réponse : une fois le flux commencé, seul le délai total s'applique.")}${md("**Débit.** La passerelle n'impose aucune limite de débit qui lui soit propre : les limites sont celles de vos comptes chez Groq, Google et Cloudflare. Quand elles sont atteintes, la bascule automatique prend le relais (voir [Modèles et routage](#routage)).")}</div>`,
+      `<div class="docs-prose">${md("La durée d'une tentative couvre l'attente de la réponse complète, hors streaming. En streaming, elle ne couvre que l'attente du début de la réponse : une fois le flux commencé, seul le délai total s'applique.")}${md("**Débit.** La passerelle n'impose aucune limite de débit qui lui soit propre : les limites sont celles de vos comptes chez Groq, Google et Cloudflare. Quand elles sont atteintes, la bascule automatique prend le relais (voir [Modèles et routage](#routage)).")}${md("**Modèles à raisonnement.** Certains modèles (`gpt-oss`, Gemini 3, Qwen3…) réfléchissent avant de répondre, et ces jetons de réflexion comptent dans `max_tokens`. Si la limite est trop basse, la réponse est coupée avant d'avoir commencé : le statut reste `200`, mais `content` est vide et `finish_reason` vaut `length`. Évitez de fixer `max_tokens`, laissez au moins 1 000 jetons de marge, ou réduisez la réflexion avec `reasoning_effort: low` (modèles `gpt-oss` de Groq).")}</div>`,
     ),
   );
 
@@ -361,7 +361,7 @@ export function createContent(spec, reference) {
     ["GEMINI_API_KEY", "Clé de l'API Google Gemini. Vide : Gemini est désactivé.", "—"],
     ["CLOUDFLARE_API_TOKEN", "Jeton Cloudflare Workers AI. Avec `CLOUDFLARE_ACCOUNT_ID`, active Cloudflare.", "—"],
     ["CLOUDFLARE_ACCOUNT_ID", "Identifiant de compte Cloudflare.", "—"],
-    ["GROQ_MODEL", "Modèles Groq à essayer en premier (liste séparée par des virgules). Les autres modèles de chat actifs suivent automatiquement.", value(DEFAULTS.groqModels.join(","))],
+    ["GROQ_MODEL", "Modèles Groq à essayer en premier (liste séparée par des virgules). Les autres modèles de chat actifs suivent, du plus grand au plus petit.", value(DEFAULTS.groqModels.join(","))],
     ["GEMINI_MODEL", "Modèles Gemini, essayés dans l'ordre.", value(DEFAULTS.geminiModels.join(","))],
     ["CLOUDFLARE_MODEL", "Modèles Cloudflare, essayés dans l'ordre.", value(DEFAULTS.cloudflareModels.join(","))],
     ["TIMEOUT_MS", "Durée maximale d'une tentative chez un fournisseur (minimum 500).", value(defaults.timeoutMs)],
@@ -388,7 +388,7 @@ export function createContent(spec, reference) {
       snippet("node -e \"console.log(crypto.randomUUID().replaceAll('-', '') + crypto.randomUUID().replaceAll('-', ''))\"", "bash", { label: "Générer une clé" }),
       `<div class="docs-prose">${md("Donnez une clé différente à chaque projet : vous pourrez en révoquer une sans toucher aux autres. Pour changer de clé, modifiez `GATEWAY_KEYS` puis redéployez. Au démarrage, la passerelle signale dans ses journaux les clés d'exemple ou trop courtes.")}</div>`,
       h3("modeles-par-defaut", "Choisir les modèles"),
-      `<div class="docs-prose">${md("Les modèles par défaut ont été vérifiés dans la documentation des fournisseurs le 2 octobre 2026. **Les fournisseurs retirent régulièrement des modèles** : si un identifiant disparaît, la passerelle bascule d'elle-même sur le suivant, mais pensez à mettre à jour `GROQ_MODEL`, `GEMINI_MODEL` et `CLOUDFLARE_MODEL`. Les modèles Groq de chat actifs sont découverts automatiquement.")}</div>`,
+      `<div class="docs-prose">${md("Les modèles par défaut ont été vérifiés dans la documentation des fournisseurs le 2 octobre 2026. **Les fournisseurs retirent régulièrement des modèles** : si un identifiant disparaît, la passerelle bascule d'elle-même sur le suivant, mais pensez à mettre à jour `GROQ_MODEL`, `GEMINI_MODEL` et `CLOUDFLARE_MODEL`. Les modèles Groq de chat actifs sont découverts automatiquement ; si `GROQ_MODEL` cite un modèle que Groq ne propose plus, un avertissement est écrit dans les journaux.")}</div>`,
       h3("journaux", "Journaux et sécurité"),
       `<div class="docs-prose">${md("Chaque requête produit une ligne de journal, sans jamais écrire le corps, la clé ni la query string :")}</div>`,
       snippet("[req_3f9a1c7e2b5d4a60] POST /v1/chat/completions 200 812ms groq/openai/gpt-oss-120b clé=9fce2e", "text", { label: "Exemple de ligne de journal" }),
@@ -403,7 +403,16 @@ export function createContent(spec, reference) {
     "versions",
     "Notes de version",
     join(
-      `<h3 id="v1-1-0">Version ${esc(VERSION)} ${tag("Actuelle", "blue", { size: "sm" })}</h3>`,
+      `<h3 id="v${esc(VERSION.replaceAll(".", "-"))}">Version ${esc(VERSION)} ${tag("Actuelle", "blue", { size: "sm" })}</h3>`,
+      `<div class="docs-prose">${md(
+        [
+          "- **Ordre des modèles Groq stable** : les modèles qui ne figurent pas dans `GROQ_MODEL` sont désormais classés du plus grand au plus petit. Ils suivaient jusqu'ici l'ordre de la liste renvoyée par Groq, qui change d'une heure à l'autre.",
+          "- **Cloudflare Workers AI** : l'erreur « No such model » (HTTP 400) est reconnue comme un modèle introuvable (pause de 10 minutes, `404 model_not_found` en mode forcé), et son message est affiché tel quel au lieu du JSON brut.",
+          "- **Journaux** : un avertissement signale les modèles cités dans `GROQ_MODEL` que Groq ne propose plus.",
+          "- **Documentation** : nouvelle note sur les modèles à raisonnement et `max_tokens` (réponse vide quand la limite est trop basse).",
+        ].join("\n"),
+      )}</div>`,
+      `<h3 id="v1-1-0">Version 1.1.0</h3>`,
       `<div class="docs-prose">${md(
         [
           "- **Documentation** : cette page (`/docs/`) et la spécification OpenAPI 3.1 (`/openapi.json`).",

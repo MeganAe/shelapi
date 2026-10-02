@@ -1,6 +1,6 @@
 {
   "name": "ai-gateway",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "Passerelle IA compatible OpenAI (Groq, Gemini, Cloudflare Workers AI) avec bascule automatique.",
   "type": "module",

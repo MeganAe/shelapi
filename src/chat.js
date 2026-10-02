@@ -39,7 +39,8 @@ export function parseRetryAfter(headerValue, bodyText = "", now = Date.now) {
 export function classifyFailure(status, code, message) {
   if (status === 429) return "rate_limit";
   if (status === 401 || status === 403) return "auth";
-  const gone = /decommission|no longer (available|supported)|model[^.]{0,40}(does not exist|not found|not supported)/i;
+  // « No such model » : formulation de Cloudflare Workers AI (HTTP 400, code 5007), relevée sur un déploiement réel.
+  const gone = /decommission|no longer (available|supported)|no such model|model[^.]{0,40}(does not exist|not found|not supported)/i;
   if (status === 404 || status === 410 || /decommission|model_not_found|model_deprecated/i.test(code) || (status === 400 && gone.test(message))) {
     return "model_unavailable";
   }
@@ -96,7 +97,8 @@ export function createChat({ config, providers, fetch, now = Date.now, log }) {
       /* corps non JSON */
     }
     const first = Array.isArray(parsed) ? parsed[0] : parsed; // Gemini renvoie parfois un tableau
-    const err = first?.error ?? first ?? {};
+    const cloudflare = Array.isArray(first?.errors) ? first.errors[0] : undefined; // Cloudflare : { errors: [{ code, message }] }
+    const err = first?.error ?? cloudflare ?? first ?? {};
     const message = redact(typeof err.message === "string" ? err.message : typeof err === "string" ? err : text).slice(0, 300);
     const code = String(err.code ?? err.type ?? err.status ?? "");
     const kind = classifyFailure(upstream.status, code, message);

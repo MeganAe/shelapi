@@ -55,7 +55,7 @@ et dans la documentation (`/docs/`, section « Configuration et déploiement »)
 | --- | --- |
 | `GATEWAY_KEYS` | **Requise.** Clés autorisées à appeler l'API, séparées par des virgules (16 caractères minimum) |
 | `GROQ_API_KEY`, `GEMINI_API_KEY`, `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` | Clés des fournisseurs (un fournisseur sans clé est désactivé) |
-| `GROQ_MODEL`, `GEMINI_MODEL`, `CLOUDFLARE_MODEL` | Modèles préférés, listes séparées par des virgules |
+| `GROQ_MODEL`, `GEMINI_MODEL`, `CLOUDFLARE_MODEL` | Modèles préférés, listes séparées par des virgules (chez Groq, les autres modèles actifs suivent, du plus grand au plus petit) |
 | `TIMEOUT_MS`, `DEADLINE_MS` | Durée d'une tentative / durée totale d'une requête |
 | `MAX_BODY_BYTES`, `CORS_ORIGINS`, `LOG_LEVEL` | Taille maximale, origines CORS, verbosité des journaux |
 
@@ -115,6 +115,8 @@ Les tests vérifient que chaque route documentée existe, que la documentation c
 | `404 model_not_found`, ou « model_decommissioned » dans les journaux | Un modèle a été retiré | Mettez à jour `*_MODEL` (voir les pages « deprecations » des fournisseurs) |
 | `429 rate_limited` | Tous les modèles ont atteint leur quota | Attendez le `Retry-After`, ajoutez d'autres fournisseurs ou modèles |
 | `504 deadline_exceeded` | La requête dépasse `DEADLINE_MS` | Demandez une réponse plus courte (`max_tokens`) ou utilisez le streaming |
+| Réponse `200` mais `content` vide (`finish_reason: "length"`) | Modèle à raisonnement (`gpt-oss`, Gemini 3…) : la réflexion consomme `max_tokens` | Ne fixez pas `max_tokens`, laissez au moins 1 000 jetons de marge, ou ajoutez `"reasoning_effort": "low"` (modèles `gpt-oss` de Groq) |
+| Un modèle inattendu ou très lent répond, ou la réponse contient `<thought>` | `*_MODEL` pointe vers un modèle retiré, ou vers un modèle qui montre sa réflexion | Cherchez « GROQ_MODEL cite des modèles absents » dans les journaux, comparez avec `GET /v1/models`, puis mettez les variables à jour |
 
 Chaque réponse porte un en-tête `X-Request-Id`, repris dans les journaux : c'est le moyen le plus rapide de retrouver une requête.
 

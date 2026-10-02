@@ -87,6 +87,10 @@ test("classifyFailure : statut + code + message → nature de l'échec", () => {
   assert.equal(classifyFailure(410, "", ""), "model_unavailable");
   assert.equal(classifyFailure(400, "model_decommissioned", ""), "model_unavailable");
   assert.equal(classifyFailure(400, "", "The model `x` has been decommissioned"), "model_unavailable");
+  // Cloudflare Workers AI : modèle inexistant = HTTP 400 « No such model » (code 5007), relevé sur un déploiement réel
+  assert.equal(classifyFailure(400, "5007", "AiError: No such model: No such model @cf/x/y or task (72ef)"), "model_unavailable");
+  // ... mais « deprecated » seul ne suffit pas : un paramètre obsolète est une erreur de la requête, pas un modèle retiré
+  assert.equal(classifyFailure(400, "", "The parameter `max_tokens` has been deprecated, use `max_completion_tokens`"), "client");
   assert.equal(classifyFailure(400, "", "invalid temperature"), "client");
   assert.equal(classifyFailure(422, "", ""), "client");
   assert.equal(classifyFailure(500, "", ""), "server");

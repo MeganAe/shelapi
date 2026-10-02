@@ -134,6 +134,50 @@ test("modèle retiré (400 model_decommissioned) : bascule + pause longue de ce 
     assert.equal(up.chatCalls("groq").filter((c) => c.body.model === "model-a").length, 1, "model-a n'est plus réessayé");
   }));
 
+// Corps d'erreur de Cloudflare Workers AI. Les deux premiers sont ceux relevés sur un déploiement réel le 2 octobre 2026
+// (format « errors: [{ code, message }] », différent de celui de Groq et de Gemini) ; le troisième est un exemple de refus.
+const cfNoSuchModel = { status: 400, json: { errors: [{ message: "AiError: No such model: No such model @cf/inexistant/modele-xyz or task (72ef7198-96cd-45f8-bbf2-16041bea5b80)", code: 5007 }], success: false, result: {}, messages: [] } };
+const cfDeprecated = { status: 410, json: { errors: [{ message: "AiError: Model has been deprecated: @cf/meta/infire-llama-3.1-8b-instruct was deprecated on 2026-05-30. See the model catalog for alternatives (cbec94f7)", code: 5028 }], success: false, result: {}, messages: [] } };
+const cfInvalidInput = { status: 400, json: { errors: [{ message: "AiError: Invalid input: messages must not be empty (4a1f)", code: 5006 }], success: false, result: {}, messages: [] } };
+
+test("Cloudflare « No such model » (HTTP 400) : modèle introuvable (404), message lisible et non le JSON brut", () =>
+  run({}, async (gw) => {
+    up.on("cf", "chat", cfNoSuchModel);
+    const r = await gw.chat({ ...gw.hi, model: "cloudflare/@cf/inexistant/modele-xyz" });
+    assert.equal(r.status, 404);
+    assert.equal(r.json.error.code, "model_not_found");
+    assert.equal(r.json.error.details[0].kind, "model_unavailable");
+    assert.match(r.json.error.details[0].message, /^AiError: No such model/);
+  }));
+
+test("Cloudflare « Model has been deprecated » (HTTP 410) : modèle introuvable, message lisible", () =>
+  run({}, async (gw) => {
+    up.on("cf", "chat", cfDeprecated);
+    const r = await gw.chat({ ...gw.hi, model: "cloudflare/@cf/meta/llama-3.1-8b-instruct" });
+    assert.equal(r.status, 404);
+    assert.equal(r.json.error.code, "model_not_found");
+    assert.match(r.json.error.details[0].message, /^AiError: Model has been deprecated/);
+  }));
+
+test("Cloudflare « No such model » en mode auto : bascule sur le modèle suivant, et pause longue du modèle introuvable", () =>
+  run({ env: { GROQ_API_KEY: undefined, GEMINI_API_KEY: undefined, CLOUDFLARE_MODEL: "@cf/retire,@cf/bon" } }, async (gw) => {
+    up.on("cf", "chat", (call) => (call.body.model === "@cf/retire" ? cfNoSuchModel : undefined));
+    const first = await gw.chat(gw.hi);
+    assert.equal(first.status, 200);
+    assert.equal(first.headers.get("x-model"), "@cf/bon");
+    await gw.chat(gw.hi);
+    assert.equal(up.chatCalls("cf").filter((c) => c.body.model === "@cf/retire").length, 1, "@cf/retire n'est plus réessayé pendant la pause");
+  }));
+
+test("Cloudflare : un vrai refus de la requête reste un 400 upstream_rejected, avec le message de Cloudflare (pas du JSON brut)", () =>
+  run({}, async (gw) => {
+    up.on("cf", "chat", cfInvalidInput);
+    const r = await gw.chat({ ...gw.hi, model: "cloudflare/@cf/cf-1" });
+    assert.equal(r.status, 400);
+    assert.equal(r.json.error.code, "upstream_rejected");
+    assert.match(r.json.error.message, /^cloudflare a refusé la requête : AiError: Invalid input/);
+  }));
+
 test("délai global (DEADLINE_MS) dépassé : 504 deadline_exceeded en JSON, pas une coupure brutale", () =>
   run({ env: { DEADLINE_MS: "1000", TIMEOUT_MS: "800" } }, async (gw) => {
     for (const p of ["groq", "gemini", "cf"]) up.on(p, "chat", { delayMs: 5000, json: {} });

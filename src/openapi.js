@@ -402,7 +402,7 @@ function buildBase() {
             stream: { type: "boolean", default: false, description: "Si `true`, la réponse est envoyée en direct (Server-Sent Events). Doit être un booléen." },
             temperature: { type: "number", minimum: 0, maximum: 2, description: "Créativité : 0 = très déterministe, 2 = très aléatoire." },
             top_p: { type: "number", minimum: 0, maximum: 1, description: "Échantillonnage par noyau (alternative à `temperature`)." },
-            max_tokens: { type: "integer", minimum: 1, description: "Nombre maximal de tokens générés." },
+            max_tokens: { type: "integer", minimum: 1, description: "Nombre maximal de tokens générés. Avec un modèle à raisonnement (`gpt-oss`, Gemini 3…), les tokens de réflexion comptent dans cette limite : une valeur trop basse donne une réponse vide (`finish_reason` = `length`). Laissez de la marge ou omettez ce champ." },
             stop: { oneOf: [{ type: "string" }, { type: "array", items: { type: "string" }, maxItems: 4 }], description: "Séquence(s) qui arrêtent la génération." },
             seed: { type: "integer", description: "Graine pour des réponses reproductibles (selon le fournisseur)." },
           },
