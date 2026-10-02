@@ -311,7 +311,7 @@ export function createContent(spec, reference) {
         label: "Valeurs par défaut des limites",
         className: "docs-table--wrap",
       }),
-      `<div class="docs-prose">${md("La durée d'une tentative couvre l'attente de la réponse complète, hors streaming. En streaming, elle ne couvre que l'attente du début de la réponse : une fois le flux commencé, seul le délai total s'applique.")}${md("**Débit.** La passerelle n'impose aucune limite de débit qui lui soit propre : les limites sont celles de vos comptes chez Groq, Google et Cloudflare. Quand elles sont atteintes, la bascule automatique prend le relais (voir [Modèles et routage](#routage)).")}${md("**Modèles à raisonnement.** Certains modèles (`gpt-oss`, Gemini 3, Qwen3…) réfléchissent avant de répondre, et ces jetons de réflexion comptent dans `max_tokens`. Si la limite est trop basse, la réponse est coupée avant d'avoir commencé : le statut reste `200`, mais `content` est vide et `finish_reason` vaut `length`. Évitez de fixer `max_tokens`, laissez au moins 1 000 jetons de marge, ou réduisez la réflexion avec `reasoning_effort: low` (modèles `gpt-oss` de Groq).")}</div>`,
+      `<div class="docs-prose">${md("La durée d'une tentative couvre l'attente de la réponse complète, hors streaming. En streaming, elle ne couvre que l'attente du début de la réponse : une fois le flux commencé, seul le délai total s'applique.")}${md("**Débit.** La passerelle n'impose aucune limite de débit qui lui soit propre : les limites sont celles de vos comptes chez Groq, Google et Cloudflare. Quand elles sont atteintes, la bascule automatique prend le relais (voir [Modèles et routage](#routage)).")}${md("**Modèles à raisonnement.** Certains modèles (`gpt-oss`, Gemini 3, Qwen3…) réfléchissent avant de répondre, et ces jetons de réflexion comptent dans `max_tokens`. Si la limite est trop basse, la réponse est coupée avant d'avoir commencé : le statut reste `200`, mais `content` est vide et `finish_reason` vaut `length`. Évitez de fixer `max_tokens`, ou laissez au moins 1 000 jetons de marge.")}${md("La réflexion se règle avec `reasoning_effort`, mais chaque modèle accepte des valeurs différentes : `low` chez Groq (`gpt-oss`), `minimal` chez Gemini 3.5 et 3.6 Flash (environ trois fois plus rapide lors de nos essais), `low` au minimum chez Gemini 3.7 et 3.8 Flash. Ce champ étant transmis tel quel, une valeur refusée par un modèle donne une erreur `400` : en mode `auto`, la requête est alors essayée sur le modèle suivant. Pour régler la réflexion, désignez donc le modèle précisément (`fournisseur/modèle`).")}</div>`,
     ),
   );
 
@@ -404,6 +404,14 @@ export function createContent(spec, reference) {
     "Notes de version",
     join(
       `<h3 id="v${esc(VERSION.replaceAll(".", "-"))}">Version ${esc(VERSION)} ${tag("Actuelle", "blue", { size: "sm" })}</h3>`,
+      `<div class="docs-prose">${md(
+        [
+          "- **Modèles par défaut plus rapides** : Gemini passe à `gemini-3.5-flash-lite`, `gemini-3.5-flash` puis `gemini-3.6-flash` (environ 1 s, 4 s et 4 s lors des mesures du 2 octobre 2026). Gemini 3.7 et 3.8 Flash, saturés ce jour-là, et Gemma 4, trop lent, sont écartés. Cloudflare passe à `@cf/mistralai/mistral-small-3.1-24b-instruct` puis `@cf/meta/llama-3.3-70b-instruct-fp8-fast`.",
+          "- **Avertissement** dans les journaux quand un identifiant de `CLOUDFLARE_MODEL` ne commence pas par `@cf/` (le préfixe oublié est une faute fréquente).",
+          "- **Documentation** : `reasoning_effort` détaillé par fournisseur (valeurs acceptées, effet sur le délai).",
+        ].join("\n"),
+      )}</div>`,
+      `<h3 id="v1-1-1">Version 1.1.1</h3>`,
       `<div class="docs-prose">${md(
         [
           "- **Ordre des modèles Groq stable** : les modèles qui ne figurent pas dans `GROQ_MODEL` sont désormais classés du plus grand au plus petit. Ils suivaient jusqu'ici l'ordre de la liste renvoyée par Groq, qui change d'une heure à l'autre.",

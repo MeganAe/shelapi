@@ -171,8 +171,8 @@ function buildBase() {
                           { id: "auto", object: "model", created: 1790000000, owned_by: "gateway" },
                           { id: "groq/openai/gpt-oss-120b", object: "model", created: 1790000000, owned_by: "groq" },
                           { id: "groq/openai/gpt-oss-20b", object: "model", created: 1790000000, owned_by: "groq" },
-                          { id: "gemini/gemini-3.8-flash", object: "model", created: 1790000000, owned_by: "gemini" },
-                          { id: "cloudflare/@cf/meta/llama-3.1-8b-instruct-fp8", object: "model", created: 1790000000, owned_by: "cloudflare" },
+                          { id: "gemini/gemini-3.5-flash-lite", object: "model", created: 1790000000, owned_by: "gemini" },
+                          { id: "cloudflare/@cf/mistralai/mistral-small-3.1-24b-instruct", object: "model", created: 1790000000, owned_by: "cloudflare" },
                         ],
                       },
                     },
@@ -359,7 +359,7 @@ function buildBase() {
             echec: errorExample("upstream_error", {
               details: [
                 { provider: "groq", model: "openai/gpt-oss-120b", status: 503, kind: "server", message: "Service temporarily unavailable" },
-                { provider: "gemini", model: "gemini-3.8-flash", kind: "timeout" },
+                { provider: "gemini", model: "gemini-3.5-flash-lite", kind: "timeout" },
               ],
             }),
             cle: errorExample("upstream_auth_error"),
@@ -397,7 +397,7 @@ function buildBase() {
               type: "string",
               default: "auto",
               description: "Routage : `auto`, un fournisseur (`groq`, `gemini`, `cloudflare`) ou `fournisseur/modèle`. Une valeur inconnue équivaut à `auto`.",
-              examples: ["auto", "groq", "groq/openai/gpt-oss-120b", "gemini", "cloudflare/@cf/meta/llama-3.1-8b-instruct-fp8"],
+              examples: ["auto", "groq", "groq/openai/gpt-oss-120b", "gemini", "cloudflare/@cf/mistralai/mistral-small-3.1-24b-instruct"],
             },
             stream: { type: "boolean", default: false, description: "Si `true`, la réponse est envoyée en direct (Server-Sent Events). Doit être un booléen." },
             temperature: { type: "number", minimum: 0, maximum: 2, description: "Créativité : 0 = très déterministe, 2 = très aléatoire." },

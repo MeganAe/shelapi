@@ -111,11 +111,12 @@ Les tests vérifient que chaque route documentée existe, que la documentation c
 | --- | --- | --- |
 | `503 server_misconfigured` | `GATEWAY_KEYS` est vide | Définissez au moins une clé |
 | `401 invalid_api_key` | La clé n'est pas dans `GATEWAY_KEYS` | Vérifiez la clé (espaces, copier-coller) |
-| `502 upstream_auth_error` | Une clé de fournisseur est refusée | Vérifiez `GROQ_API_KEY`, `GEMINI_API_KEY`, `CLOUDFLARE_*` |
+| `502 upstream_auth_error` | Une clé de fournisseur est refusée, ou le compte n'a pas accès à ce modèle (voir `details`) | Vérifiez `GROQ_API_KEY`, `GEMINI_API_KEY`, `CLOUDFLARE_*` ; sinon choisissez un autre modèle |
 | `404 model_not_found`, ou « model_decommissioned » dans les journaux | Un modèle a été retiré | Mettez à jour `*_MODEL` (voir les pages « deprecations » des fournisseurs) |
 | `429 rate_limited` | Tous les modèles ont atteint leur quota | Attendez le `Retry-After`, ajoutez d'autres fournisseurs ou modèles |
 | `504 deadline_exceeded` | La requête dépasse `DEADLINE_MS` | Demandez une réponse plus courte (`max_tokens`) ou utilisez le streaming |
 | Réponse `200` mais `content` vide (`finish_reason: "length"`) | Modèle à raisonnement (`gpt-oss`, Gemini 3…) : la réflexion consomme `max_tokens` | Ne fixez pas `max_tokens`, laissez au moins 1 000 jetons de marge, ou ajoutez `"reasoning_effort": "low"` (modèles `gpt-oss` de Groq) |
+| `504 upstream_timeout`, `503 high demand` ou plus de 10 s de délai chez Gemini | Modèle saturé ou à réflexion lente (au 2 octobre 2026 : Gemini 3.7 et 3.8 Flash saturés, 3.1 Flash-Lite lent, Gemma 4 trop lent) | Mettez les modèles rapides en premier dans `GEMINI_MODEL` (`gemini-3.5-flash-lite,gemini-3.5-flash,gemini-3.6-flash`) ; mesurez un modèle avec `"model": "gemini/<modèle>"` |
 | Un modèle inattendu ou très lent répond, ou la réponse contient `<thought>` | `*_MODEL` pointe vers un modèle retiré, ou vers un modèle qui montre sa réflexion | Cherchez « GROQ_MODEL cite des modèles absents » dans les journaux, comparez avec `GET /v1/models`, puis mettez les variables à jour |
 
 Chaque réponse porte un en-tête `X-Request-Id`, repris dans les journaux : c'est le moyen le plus rapide de retrouver une requête.

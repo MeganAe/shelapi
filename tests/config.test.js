@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { DEFAULTS, loadConfig, parseInteger, parseList } from "../src/config.js";
 import { ERRORS, GatewayError, redact } from "../src/http.js";
@@ -119,4 +120,28 @@ test("createLogger : respecte LOG_LEVEL", () => {
   const silent = createLogger("silent", sink);
   silent.error("x");
   assert.equal(out.length, 2);
+});
+
+test("CLOUDFLARE_MODEL : un identifiant sans @cf/ (faute fréquente) déclenche un avertissement, et lui seul", () => {
+  const base = { GATEWAY_KEYS: "k".repeat(24), CLOUDFLARE_API_TOKEN: "t", CLOUDFLARE_ACCOUNT_ID: "a" };
+  const warnings = (extra) => loadConfig({ ...base, ...extra }).warnings.join("\n");
+  assert.match(warnings({ CLOUDFLARE_MODEL: "apertus-v1.5-8b, @cf/meta/ok" }), /CLOUDFLARE_MODEL : « apertus-v1\.5-8b » ne commence pas par @cf\//);
+  assert.doesNotMatch(warnings({ CLOUDFLARE_MODEL: "apertus-v1.5-8b, @cf/meta/ok" }), /« @cf\/meta\/ok »/, "seuls les identifiants douteux sont cités");
+  assert.equal(warnings({ CLOUDFLARE_MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast,@hf/mistral/mistral-7b-instruct-v0.2" }), "");
+  assert.equal(warnings({}), "", "valeurs par défaut : aucun avertissement");
+  const disabled = loadConfig({ GATEWAY_KEYS: "k".repeat(24), GROQ_API_KEY: "g", CLOUDFLARE_MODEL: "n-importe-quoi" });
+  assert.deepEqual([...disabled.warnings], [], "Cloudflare désactivé : rien à signaler");
+});
+
+test(".env.example propose exactement les modèles par défaut du code (aucune dérive entre les deux)", () => {
+  const example = Object.fromEntries(
+    readFileSync(new URL("../.env.example", import.meta.url), "utf8")
+      .split("\n")
+      .map((line) => /^([A-Z_]+)=(.*)$/.exec(line))
+      .filter(Boolean)
+      .map(([, name, value]) => [name, value.trim()]),
+  );
+  assert.equal(example.GROQ_MODEL, DEFAULTS.groqModels.join(","));
+  assert.equal(example.GEMINI_MODEL, DEFAULTS.geminiModels.join(","));
+  assert.equal(example.CLOUDFLARE_MODEL, DEFAULTS.cloudflareModels.join(","));
 });

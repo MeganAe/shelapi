@@ -3,13 +3,15 @@
 //  (lue au démarrage de la fonction, pas à l'import → facile à tester)
 // =====================================================================
 
-// Modèles par défaut, vérifiés dans la documentation officielle des fournisseurs
-// le 2 octobre 2026. Ils changent souvent : surchargez-les avec GROQ_MODEL,
-// GEMINI_MODEL et CLOUDFLARE_MODEL (listes séparées par des virgules).
+// Modèles par défaut : gratuits d'après la documentation officielle des fournisseurs, puis classés du plus rapide au
+// plus lent d'après des mesures faites le 2 octobre 2026 sur un déploiement réel (3 essais par modèle). Ce jour-là,
+// Gemini 3.7 et 3.8 Flash étaient saturés (erreur 503 « high demand » ou délai dépassé), Gemini 3.1 Flash-Lite mettait
+// environ 15 s et Gemma 4 plus de 20 s en affichant sa réflexion : ils ne sont pas retenus. Les noms changent souvent :
+// surchargez-les avec GROQ_MODEL, GEMINI_MODEL et CLOUDFLARE_MODEL (listes séparées par des virgules).
 export const DEFAULTS = Object.freeze({
   groqModels: ["openai/gpt-oss-120b"],
-  geminiModels: ["gemini-3.8-flash", "gemini-3.5-flash-lite"],
-  cloudflareModels: ["@cf/meta/llama-3.1-8b-instruct-fp8"],
+  geminiModels: ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.6-flash"],
+  cloudflareModels: ["@cf/mistralai/mistral-small-3.1-24b-instruct", "@cf/meta/llama-3.3-70b-instruct-fp8-fast"],
 });
 
 // Valeurs d'exemple publiées dans l'ancien .env.example : à ne jamais utiliser en production.
@@ -76,6 +78,13 @@ export function loadConfig(env = process.env) {
   }
   if (!gatewayKeys.length) warnings.push("GATEWAY_KEYS est vide : toutes les requêtes authentifiées seront refusées (503).");
   if (!providers.some((p) => p.enabled)) warnings.push("Aucun fournisseur configuré (GROQ_API_KEY, GEMINI_API_KEY ou CLOUDFLARE_*).");
+  // Les identifiants Workers AI ont toujours la forme @cf/auteur/modèle : le préfixe oublié est une faute fréquente
+  // (« apertus-v1.5-8b » au lieu de « @cf/swiss-ai/apertus-v1.5-8b »), qui ne se voit sinon qu'au premier secours.
+  const cloudflare = providers.find((p) => p.name === "cloudflare");
+  const malformed = cloudflare.models.filter((id) => !/^@(cf|hf)\//.test(id));
+  if (cloudflare.enabled && malformed.length) {
+    warnings.push(`CLOUDFLARE_MODEL : ${malformed.map((id) => `« ${id} »`).join(", ")} ne commence pas par @cf/. Les modèles Workers AI ont la forme @cf/auteur/modèle, par exemple @cf/meta/llama-3.3-70b-instruct-fp8-fast.`);
+  }
 
   const origins = parseList(env.CORS_ORIGINS, ["*"]);
 
