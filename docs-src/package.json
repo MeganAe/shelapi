@@ -1,0 +1,18 @@
+{
+  "name": "shel-api-docs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Génère public/docs/index.html (documentation de l'API, Carbon Design System). Outil de développement : n'est pas nécessaire au déploiement.",
+  "engines": { "node": ">=20.12" },
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@carbon/styles": "1.116.0",
+    "@ibm/plex-mono": "2.5.0",
+    "@ibm/plex-sans": "1.1.0",
+    "highlight.js": "11.12.0",
+    "sass": "1.105.1"
+  }
+}
